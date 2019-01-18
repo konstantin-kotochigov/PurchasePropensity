@@ -3,11 +3,12 @@ import pandas
 from sklearn.feature_selection import chi2
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import GridSearchCV
 
 # Parameters
 input_dir = "./data"
 input_features = "features.csv"
-input_target = "target"
+input_target = "target.csv"
 
 # Load Data
 features = pandas.read_csv("/".join([input_dir, input_features]), sep=";")
@@ -40,12 +41,6 @@ df['loans'] = pandas.cut(df.loans, [-1,0,1,1000], labels=['loans=0','loans=1','l
 # df = features.merge(cj_features, by="id", how="left").merge(target, by="id", how="left")
 # df[df.target.isnull(), 'target'] = 0
 
-df['has_limit'] = 1
-df['has_limit'][df.limit.isna()] = 0
-
-df['has_usable_limit'] = 1
-df['has_usable_limit'][df.usable_limit.isna()] = 0
-
 # Classify column types
 nominal_attrs = list(df.select_dtypes(include=['object','category']).columns)
 numeric_attrs = list(df.select_dtypes(include=['float64']).columns)
@@ -58,6 +53,17 @@ df = pandas.concat([df, dummy_df], axis=1)
 
 numeric_attrs = numeric_attrs + dummy_attrs
 
+# Mark missing data
+df['has_limit'] = 1
+df['has_limit'][df.limit.isna()] = 0
+df['has_usable_limit'] = 1
+df['has_usable_limit'][df.usable_limit.isna()] = 0
+
+# Fill missing data
+df.fillna(df[numeric_attrs].mean(), inplace=True)
+# df.fillna(df[nominal_attrs].mode(), inplace=True)
+
+
 # Cross-correlation
 
 
@@ -65,19 +71,37 @@ numeric_attrs = numeric_attrs + dummy_attrs
 numeric_importance = pandas.DataFrame({"attr":numeric_attrs})
 nominal_importnace = pandas.DataFrame({"attr":nominal_attrs})
 
-lr =  LogisticRegression()
+lr =  LogisticRegression(solver='lbfgs')
 
 rocauc_importance = []
 for attr in numeric_attrs:
-    notnull_rows = df[attr].isna()==False
-    lr.fit(df[attr][notnull_rows].to_frame(), df.target[notnull_rows])
-    y_pred = lr.predict(df[attr][notnull_rows].to_frame())
-    rocauc_importance.append(roc_auc_score(df.target[notnull_rows], y_pred))
+    print("Processing ",attr)
+    lr.fit(df[attr].to_frame(), df.target)
+    y_pred = lr.predict_proba(df[attr].to_frame())[:,1]
+    rocauc_importance.append(roc_auc_score(df.target, y_pred))
+
 numeric_importance['auc'] = rocauc_importance
 
 # Feature generation
 
 # GridSearchCV
+
+X = df[numeric_attrs]
+y = df.target
+
+# ros = RandomOverSampler(random_state=0)
+# X_resampled, y_resampled = ros.fit_resample(X, y)
+
+X = pandas.concat([X, X[y==1]], axis=0)
+y = pandas.concat([y, y[y==1]], axis=0)
+
+lrParamGrid={"penalty":("l1","l2"), "C":(0.1,0.5,1.0)}
+lrCV = GridSearchCV(lr, param_grid=lrParamGrid, scoring='roc_auc', cv=5, verbose=0, n_jobs=-1)
+lrCV.fit(X,y)
+cv_results = lrCV.cv_results_
+cv_table = pandas.DataFrame({"param":cv_results['params'], "error":cv_results['mean_test_score']}).sort_values(by="error", ascending=False)
+# cv_table.to_csv("re/gridsearch/coordinates_randomforest.csv", index=False)
+
 
 # Evaluate
 
