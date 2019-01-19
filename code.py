@@ -2,8 +2,8 @@
 import pandas
 from sklearn.feature_selection import chi2
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import roc_auc_score
-from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import roc_auc_score, precision_score, precision_recall_fscore_support, roc_curve, auc, precision_recall_curve, precision_recall_fscore_support
+from sklearn.model_selection import GridSearchCV, validation_curve
 
 # Parameters
 input_dir = "./data"
@@ -101,6 +101,36 @@ lrCV.fit(X,y)
 cv_results = lrCV.cv_results_
 cv_table = pandas.DataFrame({"param":cv_results['params'], "error":cv_results['mean_test_score']}).sort_values(by="error", ascending=False)
 # cv_table.to_csv("re/gridsearch/coordinates_randomforest.csv", index=False)
+
+lr = LogisticRegression(solver='lbfgs', penalty='l2', C=0.1, njobs=-1)
+
+lr.fit(X,y)
+
+y_pred = lr.predict_proba(X)[:,1]
+prec, rec, tre = precision_recall_fscore_support(y, y_pred)
+f_score = [2*x*y/(x+y) for (x,y) in zip(prec,rec)]
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+plt.clf()
+plt.style.use('bmh')
+plt.plot(tre, prec[:-1], 'b--', label='precision')
+plt.savefig("plots/prec_curve.png", dpi=300)
+
+plt.clf()
+plt.plot(tre, rec[:-1], 'g--', label='recall')
+plt.savefig("plots/prec_recall.png")
+
+plt.clf()
+plt.plot(tre, f_score[:-1], 'b--', label='f1-score')
+plt.savefig("plots/f1_curve.png")
+
+plt.clf()
+plt.plot(tre, prec[:-1], 'b--', label='precision')
+plt.plot(tre, rec[:-1], 'g--', label='recall')
+plt.savefig("plots/prec_recall_curve.png")
+
 
 
 # Evaluate
