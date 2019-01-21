@@ -131,7 +131,18 @@ plt.plot(tre, prec[:-1], 'b--', label='precision')
 plt.plot(tre, rec[:-1], 'g--', label='recall')
 plt.savefig("plots/prec_recall_curve.png")
 
-
+# Plot scoring density
+kde = KernelDensity(kernel="gaussian", bandwidth=0.15)
+kde.fit(y_pred[:,np.newaxis])
+X_plot = numpy.linspace(0, 1.0, 100)[:, np.newaxis]
+d = numpy.exp(kde.score_samples(X_plot))
+plt.clf()
+plt.xlabel("Probability")
+plt.ylabel("Density")
+# plt.xticks([])
+plt.plot(X_plot, d)
+plt.hist(y_pred, bins=20)
+plt.savefig("plots/prob_density.png", dpi=300)
 
 # Evaluate
 
