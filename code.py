@@ -6,9 +6,9 @@ from sklearn.metrics import roc_auc_score, precision_score, precision_recall_fsc
 from sklearn.model_selection import GridSearchCV, validation_curve
 
 # Parameters
-input_dir = "./data"
-input_features = "features.csv"
-input_target = "target.csv"
+input_dir = "/data/6287566b-8263-497b-8a4e-fbdb2680df1e/Machine Learning_People who gets loan succesfully recently/"
+input_features = "DUMMY ID & Attrıbutes_dmpuploadfile.csv"
+input_target = "ids.csv"
 
 # Load Data
 features = pandas.read_csv("/".join([input_dir, input_features]), sep=";")
