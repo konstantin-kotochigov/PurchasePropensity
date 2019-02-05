@@ -35,25 +35,36 @@ def test(attributes, arg_id, type):
         return "0"
 
 spark.udf.register("cj_test", test, StringType())
-t = spark.sql("select cj_test(attributes, 50005, '4') as cnt from cj_part")
+t = spark.sql("select cj_attr(attributes, 10008, 10032) as cnt from cj_part")
 t.filter(cnt > 0).count()
 
-path = '/data/6287566b-8263-497b-8a4e-fbdb2680df1e/.dmpkit/customer-journey/master/cdm'
-cj_part = spark.read.format("com.databricks.spark.avro").load(path)
+cj_path = '/data/6287566b-8263-497b-8a4e-fbdb2680df1e/.dmpkit/customer-journey/master/cdm'
+cp_path = '/data/6287566b-8263-497b-8a4e-fbdb2680df1e/.dmpkit/customer-journey/master/cdm'
+
+# Load Customer Journey
+cj = spark.read.format("com.databricks.spark.avro").load(cj_path)
 time_from = int(datetime.datetime(2018, 12, 30).timestamp()) * 1000
 time_to = int(datetime.datetime(2018, 12, 31).timestamp()) * 1000
+cj = cj_part.filter('ts > {} and ts < {}'.format(time_from, time_to))
+cj.createOrReplaceTempView('cj_part')
 
-cj_part = cj_part.filter('ts > {} and ts < {}'.format(time_from, time_to))
-cj_part.createOrReplaceTempView('cj_part')
+# Load Customer Profile
+cj_part = spark.read.format("com.databricks.spark.avro").load(cp_path)
+time_from = int(datetime.datetime(2018, 12, 30).timestamp()) * 1000
+time_to = int(datetime.datetime(2018, 12, 31).timestamp()) * 1000
+cp = cj_part.filter('ts > {} and ts < {}'.format(time_from, time_to))
+cp.createOrReplaceTempView('cj_part')
 
 # Parameters
-input_dir = "/data/6287566b-8263-497b-8a4e-fbdb2680df1e/Machine Learning_People who gets loan succesfully recently"
-input_features = "DUMMY ID & Attrıbutes_dmpuploadfile.csv"
-input_target = "ids.csv"
+train_dir = "/data/6287566b-8263-497b-8a4e-fbdb2680df1e/Machine Learning_People who gets loan succesfully recently"
+train_features = "DUMMY ID & Attrıbutes_dmpuploadfile.csv"
+train_target = "ids.csv"
+scoring_dir = "/data/6287566b-8263-497b-8a4e-fbdb2680df1e/Macjine Learning"
+scoring_features = "/data/6287566b-8263-497b-8a4e-fbdb2680df1e/Machine Learning_People who gets loan succesfully recently"
 
-# Load Data
+# Load Features Data
 train_df = spark.read.option("delimiter",";").option("header","true").csv("/".join([input_dir, input_features]))
-train_df = train_df.toDF("id","dt","source","savings","score","loans_flag","card_flag","card_limit")
+train_df = train_df.toDF("crmid","app_ts","source","savings","score","loans_flag","card_flag","card_limit")
 train_df = train_df.drop("source")
 train_df = train_df.withColumn("target", lit(1))
 
@@ -63,43 +74,48 @@ train_py
 
 train_df.createOrReplaceTempView("train_df")
 
-# Load target
+scoring_df = spark.read.option("delimiter",";").option("header","true").csv("/".join([input_dir, input_features]))
+
+# Load Target Data
 target = spark.read.option("delimiter",";").option("header","true").csv("/".join([input_dir, input_target]))
 
 
 left join train_df t on c.id=t.id
 from_unixtime(ts/1000) as ts,
 
-base = spark.sql('''
+cj_df = spark.sql('''
 select
-    id.gid as oper_b_globuserid,
-    cj_id(id, 10008)[0] as f1,
-    cj_attr(attributes, 10045)[0] as f2,
-    cj_attr(attributes, 10052)[0] as f3,
-    cj_attr(attributes, 10055)[0] as f4    
-    ts as app_ts
+    cj_id(id, 10008, 10032)[0] as crmid,
+    cj_attr(attributes, 10035)[0] as device_type,
+    date(from_unixtime(ts/1000)) as ts
 from cj_part c
-''')
+''').filter("crmid is not null")
+
+cj_df = cj_df.join(train_df.select("crmid","app_ts"), "crmid", how='inner').filter("ts < app_ts")
+
+cj_df.createOrReplaceTempView("cj_df")
 
 base.fillna(app_ts => current_dt)
 base = base.filter(app_ts > ts and ts > app_ts - 2W)
 
 features = spark.sql("""
     select
-        id,
-        sum(f1) as f1_sum,
-        sum(f2) as f2_sum.
-        sum(f3) as f3_sum,
-        sum(f4) as f4_sum,
-        sum(f5) as f5_sum,
-        max(f1) as f1_prev,
-        max(f2) as f2_prev,
-        max(f3) as f3_prev,
-        max(f4) as f4_prev,
-        max(f5) as f5_prev,
+        crmid,
+        app_ts,
+        sum(case when device_type==10000 then 1 else 0 end) as f1_cnt,
+        sum(case when device_type==10001 then 1 else 0 end) as f2_cnt,
+        sum(case when device_type==10002 then 1 else 0 end) as f3_cnt,
+        sum(case when device_type==10003 then 1 else 0 end) as f4_cnt,
+        max(case when device_type==10000 then ts else to_date('1900-01-01') end) as f1_prev,
+        max(case when device_type==10001 then ts else to_date('1900-01-01') end) as f2_prev,
+        max(case when device_type==10002 then ts else to_date('1900-01-01') end) as f3_prev,
+        max(case when device_type==10003 then ts else to_date('1900-01-01') end) as f4_prev,
         count(*) as cnt
     from
-        base
+        cj_df
+    group by
+        crmid,
+        app_ts
 """)
 
 features.coalesce(1).write.parquet("")
