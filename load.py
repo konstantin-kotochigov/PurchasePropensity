@@ -2,7 +2,15 @@
 
 # Output: train_df, score_df, cj, cp
 
-import datetime# Input parameters
+import datetime
+import pandas
+from pyspark.sql.types import ArrayType, StringType
+from pyspark.sql.functions import lit, to_date
+
+
+
+
+# Input parameters
 train_dir = "/analytics/"
 train_features = "train.csv"
 # train_target = "ids.csv"
@@ -54,7 +62,4 @@ train_py = pandas.DataFrame(train_df.collect(), columns=train_df.columns, dtype=
 scoring_py = pandas.DataFrame(scoring_df.collect(), columns=scoring_df.columns, dtype='float64')
 
 
-import pandas
-from pyspark.sql.types import ArrayType, StringType
-from pyspark.sql.functions import lit, to_date
 

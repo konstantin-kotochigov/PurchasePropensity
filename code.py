@@ -2,69 +2,14 @@
 import pandas
 from sklearn.feature_selection import chi2
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensembles import RandomForestClassifier, GradientBoostingClassifer
 from sklearn.metrics import roc_auc_score, precision_score, precision_recall_fscore_support, roc_curve, auc, precision_recall_curve, precision_recall_fscore_support
 from sklearn.model_selection import GridSearchCV, validation_curve
 
-# Parameters
-input_dir = "/data/6287566b-8263-497b-8a4e-fbdb2680df1e/Machine Learning_People who gets loan succesfully recently/"
-input_features = "DUMMY ID & Attrıbutes_dmpuploadfile.csv"
-input_target = "ids.csv"
-
-# Load Data
-features = pandas.read_csv("/".join([input_dir, input_features]), sep=";")
-# cj_features = pandas.read_csv("", sep="")
-target = pandas.read_csv("/".join([input_dir, input_target]), sep=";")["dummy id"].rename("id").to_frame()
-target['target'] = 1
-
-features.columns = ['id','account','credit_score','loans','card','limit','usable_limit']
-
-df = features.merge(target, on="id", how="left")
-df.target[df.target.isna()] = 0
-
-df.target.value_counts()
-
-def histogram(x):
-    hist = x.value_counts().rename("cnt")
-    hist_n = round(100 * x.value_counts(normalize=True), 5).astype(str).rename("pct")
-    df = pandas.concat([hist, hist_n+"%"], axis=1)[0:10]
-    df['value'] = df.index
-    df = df.reset_index()
-    return(df[['value','cnt','pct']])
-
-# For presentation
-histogram(features.loans)
-histogram(features.account)
-histogram(features.card)
-
-df['loans'] = pandas.cut(df.loans, [-1,0,1,1000], labels=['loans=0','loans=1','loans=2+'])
-
-# df = features.merge(cj_features, by="id", how="left").merge(target, by="id", how="left")
-# df[df.target.isnull(), 'target'] = 0
-
-# Classify column types
-nominal_attrs = list(df.select_dtypes(include=['object','category']).columns)
-numeric_attrs = list(df.select_dtypes(include=['uint8','float64']).columns)
-numeric_attrs.remove('target')
-
-dummy_df = pandas.get_dummies(data=df[nominal_attrs], drop_first=True)
-dummy_df.columns = ["dummy_"+x for x in dummy_df.columns]
-dummy_attrs = list(dummy_df.columns)
-df = pandas.concat([df, dummy_df], axis=1)
-
-numeric_attrs = numeric_attrs + dummy_attrs
-
-# Mark missing data
-df['has_limit'] = 1
-df['has_limit'][df.limit.isna()] = 0
-df['has_usable_limit'] = 1
-df['has_usable_limit'][df.usable_limit.isna()] = 0
-
-# Fill missing data
-df.fillna(df[numeric_attrs].mean(), inplace=True)
-# df.fillna(df[nominal_attrs].mode(), inplace=True)
-
-
 # Cross-correlation
+df = df_py
+X = df[numeric_attrs]
+y = df.target
 
 
 # Univariate Feature Importance
@@ -77,6 +22,8 @@ rocauc_importance = []
 for attr in numeric_attrs:
     print("Processing ",attr)
     lr.fit(X[attr].to_frame(), y)
+    print(lr.intercept_)
+    print(lr.coef_)
     y_pred = lr.predict_proba(df[attr].to_frame())[:,1]
     rocauc_importance.append(roc_auc_score(y, y_pred))
 
@@ -87,8 +34,7 @@ numeric_importance['auc'] = rocauc_importance
 # GridSearchCV
 
 
-X = df[numeric_attrs]
-y = df.target
+
 
 # ros = RandomOverSampler(random_state=0)
 # X_resampled, y_resampled = ros.fit_resample(X, y)
@@ -112,6 +58,15 @@ lr.fit(X,y)
 y_pred = lr.predict_proba(X)[:,1]
 prec, rec, tre = precision_recall_fscore_support(y, y_pred)
 f_score = [2*x*y/(x+y) for (x,y) in zip(prec,rec)]
+
+
+rf = RandomForestClassifier()
+rfParamGrid={"max_depth":[2,4,6,8,10,12], "num_estinmators":[100,1000]}
+rfCV = GridSearchCV(rf, param_grid=rfParamGrid, scoring='roc_auc', cv=5, verbose=0, n_jobs=-1)
+rfCV.fit(X[numeric_attrs1],y)
+cv_results = rfCV.cv_results_
+cv_table = pandas.DataFrame({"param":cv_results['params'], "score":cv_results['mean_test_score'], "stdev":cv_results["std_dev_score"]}).sort_values(by="score", ascending=False)
+cv_table
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
