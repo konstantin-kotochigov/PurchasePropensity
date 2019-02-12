@@ -42,31 +42,11 @@ numeric_importance['auc'] = rocauc_importance
 # X = pandas.concat([X, X[y==1]], axis=0)
 # y = pandas.concat([y, y[y==1]], axis=0)
 
-lr = LogisticRegression(solver='lbfgs', penalty='l2', C=0.1)
-lrParamGrid={"penalty":["l2"], "C":(0.1,0.5,1.0)}
-lrCV = GridSearchCV(lr, param_grid=lrParamGrid, scoring='roc_auc', cv=5, verbose=0, n_jobs=-1)
-lrCV.fit(X[numeric_attrs1],y)
-cv_results = lrCV.cv_results_
-cv_table = pandas.DataFrame({"param":cv_results['params'], "error":cv_results['mean_test_score']}).sort_values(by="error", ascending=False)
-cv_table
-# cv_table.to_csv("re/gridsearch/coordinates_randomforest.csv", index=False)
-
-lr = LogisticRegression(solver='lbfgs', penalty='l2', C=0.1, njobs=-1)
-
-lr.fit(X,y)
 
 y_pred = lr.predict_proba(X)[:,1]
 prec, rec, tre = precision_recall_fscore_support(y, y_pred)
 f_score = [2*x*y/(x+y) for (x,y) in zip(prec,rec)]
 
-
-rf = RandomForestClassifier()
-rfParamGrid={"max_depth":[2,4,6,8,10,12], "num_estinmators":[100,1000]}
-rfCV = GridSearchCV(rf, param_grid=rfParamGrid, scoring='roc_auc', cv=5, verbose=0, n_jobs=-1)
-rfCV.fit(X[numeric_attrs1],y)
-cv_results = rfCV.cv_results_
-cv_table = pandas.DataFrame({"param":cv_results['params'], "score":cv_results['mean_test_score'], "stdev":cv_results["std_dev_score"]}).sort_values(by="score", ascending=False)
-cv_table
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
