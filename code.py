@@ -1,7 +1,7 @@
 # Imports
 import pandas
 from sklearn.feature_selection import chi2
-from sklearn.linear_model import LogisticRegression
+
 from sklearn.ensembles import RandomForestClassifier, GradientBoostingClassifer
 from sklearn.metrics import roc_auc_score, precision_score, precision_recall_fscore_support, roc_curve, auc, precision_recall_curve, precision_recall_fscore_support
 from sklearn.model_selection import GridSearchCV, validation_curve

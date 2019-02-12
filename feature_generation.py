@@ -49,7 +49,8 @@ train_py.tl_account[train_py.tl_account=="Yes"] = 1.0
 train_py.active_card[train_py.active_card=="Has problem"] = "problem"
 # train_py.has_loans[train_py.has_loans=="No"] = 0
 # train_py.has_loans[train_py.has_loans=="Yes"] = 1
-# train_py.num_loans = train_py.num_loans - 1
+# train_py['num_loans'] = train_py.num_loans - 1
+# train_py.num_loans[train_py.num_loans < 0] = 0
 
 # Map Scoring to train
 # scoring_py['app_ts'] = date()
