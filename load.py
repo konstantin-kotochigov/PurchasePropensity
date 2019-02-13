@@ -29,8 +29,8 @@ train_df = train_df.select("crmid","app_ts","tl_account","credit_score","num_loa
 train_df.createOrReplaceTempView("train_df")
 
 scoring_df = spark.read.option("delimiter",";").option("header","true").csv("/".join([scoring_dir, scoring_features]))
-scoring_df = scoring_df.toDF("crmid", "tl_account", "credit_score", "num_loans", "active_card", "card_limit","usable_card_limit")
-scoring_df = scoring_df.withColumn("app_ts",to_date(lit("2019-01-25")))
+scoring_df = scoring_df.toDF("crmid", "id", "tl_account", "credit_score", "num_loans", "active_card", "card_limit","usable_card_limit")
+scoring_df = scoring_df.withColumn("app_ts",to_date(lit("2019-02-13")))
 scoring_df = scoring_df.select("crmid", "app_ts", "tl_account", "credit_score", "num_loans", "active_card", "card_limit", "usable_card_limit")
 # scoring_df1 = spark.read.option("delimiter",";").option("header","true").csv("/".join([scoring_dir, scoring_f1]))
 # scoring_df2 = spark.read.option("delimiter",";").option("header","true").csv("/".join([scoring_dir, scoring_f2]))
@@ -45,7 +45,7 @@ cp_path = '/data/6287566b-8263-497b-8a4e-fbdb2680df1e/.dmpkit/profiles/master/cd
 
 # Load Customer Journey
 cj = spark.read.format("com.databricks.spark.avro").load(cj_path)
-time_from = int(datetime.datetime(2018, 12, 30).timestamp()) * 1000
+time_from = int(datetime.datetime(2018, 12, 10).timestamp()) * 1000
 time_to = int(datetime.datetime(2018, 12, 31).timestamp()) * 1000
 cj = cj.filter('ts > {} and ts < {}'.format(time_from, time_to))
 cj.createOrReplaceTempView('cj')
@@ -60,6 +60,12 @@ cp.createOrReplaceTempView('cj')
 # Convert to Python dataframes
 train_py = pandas.DataFrame(train_df.collect(), columns=train_df.columns, dtype='float64')
 scoring_py = pandas.DataFrame(scoring_df.collect(), columns=scoring_df.columns, dtype='float64')
+scoring_py = scoring_py.drop_duplicates(subset=["crmid"], keep=False)
+
+# Remove Training customers from scoring dataset
+scoring_ids = pandas.DataFrame(list(set(scoring_py.crmid).difference(set(train_py.crmid))), columns=['crmid'])
+scoring_py = scoring_py.join(scoring_ids.set_index("crmid"), how='inner', on='crmid')
+scoring_py.reset_index()
 
 
 
