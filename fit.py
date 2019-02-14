@@ -1,17 +1,18 @@
+import math
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.metrics import precision_recall_curve
 
-model_features = optimization_features
+model_features = optimization_features.copy()
 
 X = df[model_features].copy()
 y = df.target
 
 # Since GridSearch does not give normal results
 manual_cv_results = []
-for cv_num in range(5):
+for cv_num in range(15):
     print("cv_num=",cv_num)
     X_train,  X_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
     model = LogisticRegression(C=0.1, solver='lbfgs', n_jobs=1)
@@ -55,7 +56,7 @@ result = scoring_py.sort_values(by="y_pred", ascending=False)[['crmid']][0:10000
 result_df = spark.createDataFrame(result)
 
 # HADOOP_USER_NAME=hdfs
-result_df.repartition(10).write.parquet("/honme/deployer/case5_segment_crmids")
+# result_df.repartition(10).write.parquet("/honme/deployer/case5_segment_crmids")
 
 
 

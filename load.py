@@ -57,15 +57,6 @@ time_to = int(datetime.datetime(2018, 12, 31).timestamp()) * 1000
 cp = cp_part.filter('ts > {} and ts < {}'.format(time_from, time_to))
 cp.createOrReplaceTempView('cj')
 
-# Convert to Python dataframes
-train_py = pandas.DataFrame(train_df.collect(), columns=train_df.columns, dtype='float64')
-scoring_py = pandas.DataFrame(scoring_df.collect(), columns=scoring_df.columns, dtype='float64')
-scoring_py = scoring_py.drop_duplicates(subset=["crmid"], keep=False)
-
-# Remove Training customers from scoring dataset
-scoring_ids = pandas.DataFrame(list(set(scoring_py.crmid).difference(set(train_py.crmid))), columns=['crmid'])
-scoring_py = scoring_py.join(scoring_ids.set_index("crmid"), how='inner', on='crmid')
-scoring_py.reset_index()
 
 
 
