@@ -45,8 +45,8 @@ cp_path = '/data/6287566b-8263-497b-8a4e-fbdb2680df1e/.dmpkit/profiles/master/cd
 
 # Load Customer Journey
 cj = spark.read.format("com.databricks.spark.avro").load(cj_path)
-time_from = int(datetime.datetime(2018, 12, 10).timestamp()) * 1000
-time_to = int(datetime.datetime(2018, 12, 31).timestamp()) * 1000
+time_from = int(datetime.datetime(2018, 12, 25).timestamp()) * 1000
+time_to = int(datetime.datetime(2018, 12, 30).timestamp()) * 1000
 cj = cj.filter('ts > {} and ts < {}'.format(time_from, time_to))
 cj.createOrReplaceTempView('cj')
 

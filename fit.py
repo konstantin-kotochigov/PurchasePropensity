@@ -91,3 +91,26 @@ def get_quliaty(df, top_n):
     current_df['y_pred_class'] = -1
     current_df.y_pred_class[current_df.y_pred > tre] = 1
     current_df.y_pred_class[current_df.y_pred <= tre] = 0
+
+files = {}
+files[0] = open("/home/deployer/result75000","w")
+files[1] = open("/home/deployer/result20000","w")
+files[2] = open("/home/deployer/result5000","w")
+
+for i,x in scoring_py.iterrows():
+    if i > 100000:
+        break
+    if i % 1000==0:
+        print(i)
+    if i < 15000:
+        ind = i % 3
+    elif i < 45000:
+        ind = i % 2
+    elif i < 120000:
+        ind = 0
+    # if (14500 < i < 15000) or (35000 < i < 35500) or (75000 < i < 75500):
+    #     print(ind)
+    dummy = files[ind].write(str(i) + "," + str(int(x.crmid)) + "\n")
+
+for x in range(len(files)):
+    files[x].close()
