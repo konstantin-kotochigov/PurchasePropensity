@@ -98,7 +98,10 @@ files[0] = open("/home/deployer/result75000","w")
 files[1] = open("/home/deployer/result20000","w")
 files[2] = open("/home/deployer/result5000","w")
 
-for i,x in scoring_py.iterrows():
+result = result.reset_index()
+result = result.drop(columns="index")
+
+for i,x in result.iterrows():
     if i > 100000:
         break
     if i % 1000==0:
@@ -113,5 +116,5 @@ for i,x in scoring_py.iterrows():
     #     print(ind)
     dummy = files[ind].write(str(i) + "," + str(int(x.crmid)) + "\n")
 
-for x in range(len(files)):
-    files[x].close()
+    for x in range(len(files)):
+        files[x].close()
