@@ -40,10 +40,12 @@ from cj c
 
 
 cj_features_raw = spark.sql('''select cj_id(id, 10008, 10032)[0] as crmid, date(from_unixtime(ts/1000)) as ts from cj''').filter("crmid is not null and crmid!='undefined'")
+cj_features_raw = spark.sql("select cj_id(id, 10008, 10032) as ts from cj")
 cj_features_raw_py = cj_features_raw.collect()
 cj_ids = pandas.DataFrame([(float(x[0]),x[1]) for x in cj_features_raw_py], columns=['crmid','ts'])
 
 available_train_py = train_py[train_py.app_ts >= datetime.date(2018,12, 25)][["crmid","app_ts"]]
+available_scoring_py = train_py[train_py.app_ts >= datetime.date(2018,12, 25)][["crmid","app_ts"]]
 
 cj_df = cj_ids.join(available_train_py.set_index("crmid"), on="crmid", how='inner').filter("ts < app_ts")
 

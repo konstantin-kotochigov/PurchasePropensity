@@ -32,10 +32,6 @@ scoring_df = spark.read.option("delimiter",";").option("header","true").csv("/".
 scoring_df = scoring_df.toDF("crmid", "id", "tl_account", "credit_score", "num_loans", "active_card", "card_limit","usable_card_limit")
 scoring_df = scoring_df.withColumn("app_ts",to_date(lit("2019-02-13")))
 scoring_df = scoring_df.select("crmid", "app_ts", "tl_account", "credit_score", "num_loans", "active_card", "card_limit", "usable_card_limit")
-# scoring_df1 = spark.read.option("delimiter",";").option("header","true").csv("/".join([scoring_dir, scoring_f1]))
-# scoring_df2 = spark.read.option("delimiter",";").option("header","true").csv("/".join([scoring_dir, scoring_f2]))
-
-
 
 # Load Target Data
 # target = spark.read.option("delimiter",";").option("header","true").csv("/".join([train_dir, train_target]))
@@ -55,7 +51,7 @@ cp_part = spark.read.format("com.databricks.spark.avro").load(cp_path)
 time_from = int(datetime.datetime(2018, 12, 30).timestamp()) * 1000
 time_to = int(datetime.datetime(2018, 12, 31).timestamp()) * 1000
 cp = cp_part.filter('ts > {} and ts < {}'.format(time_from, time_to))
-cp.createOrReplaceTempView('cj')
+cp.createOrReplaceTempView('cp')
 
 
 
