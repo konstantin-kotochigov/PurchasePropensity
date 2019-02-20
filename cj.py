@@ -21,14 +21,6 @@ def cj_attr(cj_attributes, arg_id, arg_key=None):
 
 spark.udf.register("cj_attr", cj_attr, ArrayType(StringType()))
 
-def test(attributes, arg_id, type):
-    if arg_id in [x['member'+type]['id'] for x in  attributes if x['member'+type] != None]:
-        return "1"
-    else:
-        return "0"
-
-
-
 
 cj_df = spark.sql('''
 select
@@ -39,17 +31,27 @@ from cj c
 ''').filter("crmid is not null")
 
 
-cj_features_raw = spark.sql('''select cj_id(id, 10008, 10032)[0] as crmid, date(from_unixtime(ts/1000)) as ts from cj''').filter("crmid is not null and crmid!='undefined'")
-cj_features_raw = spark.sql("select cj_id(id, 10008, 10032) as ts from cj")
+cj_features_raw = spark.sql('''select cj_id(id, 10008, 10032)[0] as crmid, date(from_unixtime(ts/1000)) as ts from cj''').filter("crmid is not null and crmid!='undefined'").groupby("crmid").count()
+# cj_features_raw = spark.sql("select cj_id(id, 10008, 10032) as ts from cj")
+# spark_df = spark.createDataFrame(df)_
+
 cj_features_raw_py = cj_features_raw.collect()
 cj_ids = pandas.DataFrame([(float(x[0]),x[1]) for x in cj_features_raw_py], columns=['crmid','ts'])
 
 available_train_py = train_py[train_py.app_ts >= datetime.date(2018,12, 25)][["crmid","app_ts"]]
 available_scoring_py = train_py[train_py.app_ts >= datetime.date(2018,12, 25)][["crmid","app_ts"]]
 
-cj_df = cj_ids.join(available_train_py.set_index("crmid"), on="crmid", how='inner').filter("ts < app_ts")
 
-cj_df.createOrReplaceTempView("cj_df")
+cj_df = cj_ids.join(df[['crmid','app_ts']].set_index("crmid"), on="crmid", how='inner').groupby("crmid", as_index=False).count()[["crmid","ts"]]
+# cj_df_scoring = cj_ids.join(scoring_py[['crmid','app_ts']].set_index("crmid"), on="crmid", how='inner').groupby("crmid", as_index=False).count()[["crmid","ts"]]
+df = df.join(cj_df.set_index("crmid"), on="crmid", how="left")
+# scoring_py = scoring_py.join(cj_df_scoring.set_index("crmid"), on="crmid", how="left")
+df["ts"] = df.ts.fillna(0)
+# scoring_py["ts"] = scoring_py.ts.fillna(0)
+
+numeric_attrs.append("ts")
+
+# cj_df.createOrReplaceTempView("cj_df")
 
 base.fillna(app_ts => current_dt)
 base = base.filter(app_ts > ts and ts > app_ts - 2W)

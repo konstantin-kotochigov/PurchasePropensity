@@ -20,7 +20,6 @@ def optimize_classifier(classifier, X, y, param_grid):
 # ----------------------------------------------------------------------------------------------------------------------
 
 optimization_features = numeric_attrs
-optimization_features.remove('blank_score')
 
 optimization_X = df[optimization_features]
 optimization_y = df.target

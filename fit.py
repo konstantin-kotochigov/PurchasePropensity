@@ -6,6 +6,7 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.metrics import precision_recall_curve
 
 model_features = optimization_features.copy()
+# model_features.remove("ts")
 
 X = df[model_features].copy()
 y = df.target
@@ -45,13 +46,19 @@ df['y_pred'] = model.predict_proba(df[model_features])[:,1]
 scoring_py['y_pred'] = model.predict_proba(scoring_py[model_features])[:,1]
 
 result = scoring_py.sort_values(by="y_pred", ascending=False)[['crmid', 'y_pred']]
+
+
+
+
+
+
 df = df.sort_values(by="y_pred", ascending=False)
 result.iloc[0]
 result.iloc[-1]
 df.loc[742819]
 df.loc[658012]
 
-result = scoring_py.sort_values(by="y_pred", ascending=False)[['crmid']][0:100000]
+result = scoring_py.sort_values(by="y_pred", ascending=False)[['crmid']][0:200000]
 
 result_df = spark.createDataFrame(result)
 
@@ -94,27 +101,29 @@ def get_quliaty(df, top_n):
     current_df.y_pred_class[current_df.y_pred <= tre] = 0
 
 files = {}
-files[0] = open("/home/deployer/result75000","w")
-files[1] = open("/home/deployer/result20000","w")
-files[2] = open("/home/deployer/result5000","w")
+files[0] = open("/home/deployer/result200000","w")
+# files[1] = open("/home/deployer/result20000","w")
+# files[2] = open("/home/deployer/result5000","w")
 
 result = result.reset_index()
 result = result.drop(columns="index")
 
 for i,x in result.iterrows():
-    if i > 100000:
+    if i > 200000:
         break
-    if i % 1000==0:
-        print(i)
-    if i < 15000:
-        ind = i % 3
-    elif i < 45000:
-        ind = i % 2
-    elif i < 120000:
-        ind = 0
+#     if i % 1000==0:
+#         print(i)
+#     if i < 15000:
+#         ind = i % 3
+#     elif i < 45000:
+#         ind = i % 2
+#     elif i < 120000:
+#         ind = 0
     # if (14500 < i < 15000) or (35000 < i < 35500) or (75000 < i < 75500):
     #     print(ind)
-    dummy = files[ind].write(str(i) + "," + str(int(x.crmid)) + "\n")
+    dummy = files[0].write(str(i) + "," + str(int(x.crmid)) + "\n")
 
-    for x in range(len(files)):
-        files[x].close()
+files[0].close()
+
+for x in range(len(files)):
+    files[x].close()
