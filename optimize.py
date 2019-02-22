@@ -1,6 +1,6 @@
 import pandas
 from sklearn.linear_model import ElasticNet, Lars, HuberRegressor
-from sklearn.model_selection import GridSearchCV, GroupKFold
+from sklearn.model_selection import GridSearchCV, GroupKFold, StratifiedShuffleSplit, StratifiedKFold
 from sklearn.feature_selection import SelectKBest
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
@@ -11,11 +11,19 @@ from sklearn.pipeline import Pipeline
 from sklearn import metrics
 
 def optimize_classifier(classifier, X, y, param_grid):
-        lr_cv = GridSearchCV(classifier, param_grid, scoring=make_scorer(metrics.roc_auc_score), cv=5, verbose=2, n_jobs=2)
+        lr_cv = GridSearchCV(classifier, param_grid, scoring=make_scorer(metrics.roc_auc_score), cv=StratifiedShuffleSplit(n_splits=5, test_size=0.25, random_state=0), verbose=2, n_jobs=2)
         model = lr_cv.fit(X, y)
         cv_results = lr_cv.cv_results_
         cv_table = pandas.DataFrame({"algo":classifier.__class__.__name__,"param":cv_results['params'], "quality":cv_results['mean_test_score'], "error_std":cv_results['std_test_score']}).sort_values(by="quality", ascending=False)
         return (cv_table)
+
+def optimize_classifier(classifier, X, y, param_grid):
+        lr_cv = GridSearchCV(classifier, param_grid, scoring=make_scorer(metrics.roc_auc_score), cv=StratifiedKFold(n_splits=5, random_state=0), verbose=2, n_jobs=2)
+        model = lr_cv.fit(X, y)
+        cv_results = lr_cv.cv_results_
+        cv_table = pandas.DataFrame({"algo":classifier.__class__.__name__,"param":cv_results['params'], "quality":cv_results['mean_test_score'], "error_std":cv_results['std_test_score']}).sort_values(by="quality", ascending=False)
+        return (cv_table)
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 

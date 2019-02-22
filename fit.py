@@ -16,7 +16,7 @@ manual_cv_results = []
 for cv_num in range(15):
     print("cv_num=",cv_num)
     X_train,  X_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
-    model = LogisticRegression(C=0.1, solver='lbfgs', n_jobs=1)
+    model = LogisticRegression(C=0.2, penalty="l2", solver='lbfgs', n_jobs=1)
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
     current_result = roc_auc_score(y_test, y_pred)
